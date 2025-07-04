@@ -9,6 +9,7 @@ import RegistrationForm from './pages/Auth/RegistrationForm';
 import LoginPage from './pages/Auth/LoginPage';
 import FranchiseSignUpPage from './pages/Auth/FranchiseSignUpPage';
 import ConfirmSignUpPage   from './pages/Auth/ConfirmSignUpPage';
+import ChatTestPage from './pages/Chat/ChatTestPage';
 
 function App() {
   return (
@@ -30,6 +31,8 @@ function App() {
        
          {/* Franchise auth */}
          <Route path="/Auth/FranchiseSignUpPage" element={<FranchiseSignUpPage />} />
+         {/* Chat Test Page */}
+         <Route path="/chat-test" element={<ChatTestPage />} />
       </Routes>
     </Router>
   );

@@ -1,6 +1,7 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import ChatTestPage from '../pages/ChatTestPage';
 
 /**
  * Restricts routes when the user is already authenticated.
@@ -9,8 +10,14 @@ import { useAuth } from '../context/AuthContext';
 const PublicRoutes = () => {
   const { isAuthenticated } = useAuth();
 
-  // If not authenticated, render nested routes; otherwise redirect to dashboard
-  return !isAuthenticated ? <Outlet /> : <Navigate to="/dashboard" replace />;
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+
+  return (
+    <Routes>
+      <Route path="/chat-test" element={<ChatTestPage />} />
+      <Route path="*" element={<Outlet />} />
+    </Routes>
+  );
 };
 
 export default PublicRoutes;

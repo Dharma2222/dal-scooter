@@ -3,6 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { LogOut } from 'lucide-react';
+import ChatBubble from '../../components/ChatBubble';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
@@ -29,6 +30,7 @@ const Dashboard = () => {
           </button>
         </div>
       </div>
+      <ChatBubble />
     </div>
   );
 };
