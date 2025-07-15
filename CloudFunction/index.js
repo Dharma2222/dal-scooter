@@ -6,12 +6,9 @@ const dialogflow = require('@google-cloud/dialogflow'); // Import Dialogflow cli
 const db = new Firestore();
 
 // Initialize Dialogflow Sessions Client
-// IMPORTANT: Replace with your actual project ID
-const projectId = 'dalscooterproject-464815'; // Your GCP Project ID
+
+const projectId = 'dalscooterproject-464815'; 
 const sessionClient = new dialogflow.SessionsClient({
-  // Key file can be implicitly picked up by Cloud Functions environment
-  // or explicitly provided if running locally:
-  // keyFilename: '/path/to/your/service-account-key.json'
 });
 
 exports.dalscooterWebhook = (req, res) => {
@@ -28,7 +25,7 @@ exports.dalscooterWebhook = (req, res) => {
 
     // Set CORS headers for actual requests
     res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'POST'); // Only POST is needed for main logic
+    res.set('Access-Control-Allow-Methods', 'POST'); 
     res.set('Access-Control-Allow-Headers', 'Content-Type');
 
     try {
