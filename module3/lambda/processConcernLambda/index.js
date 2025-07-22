@@ -48,10 +48,18 @@ exports.handler = async (event) => {
         Item: concernRecord,
       }).promise();
 
-      // Send SNS notification
+      // Subscribe and Notify the franchise via SNS
       if (franchiseEmail && process.env.NOTIFY_TOPIC_ARN) {
+        // Step 1: Subscribe the email if not already subscribed
+        await sns.subscribe({
+          Protocol: "email",
+          TopicArn: process.env.NOTIFY_TOPIC_ARN,
+          Endpoint: franchiseEmail,
+        }).promise();
+
+        // Step 2: Publish notification
         await sns.publish({
-          Message: `New concern assigned to ${franchiseEmail}:\n\n${JSON.stringify(concernRecord, null, 2)}`,
+          Message: `Hello ${franchiseName || "Franchise"},\n\nYou have been assigned a new customer concern:\n\n${JSON.stringify(concernRecord, null, 2)}\n\nPlease log in to DALScooter to respond.`,
           Subject: 'New DALScooter Concern Assigned',
           TopicArn: process.env.NOTIFY_TOPIC_ARN,
         }).promise();
