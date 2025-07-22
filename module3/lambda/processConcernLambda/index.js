@@ -8,12 +8,11 @@ exports.handler = async (event) => {
     for (const record of event.Records) {
       const message = JSON.parse(record.body);
 
-      // Step 1: Fetch franchise users from Cognito
       const userPoolId = process.env.USER_POOL_ID;
 
       const usersResponse = await cognito.listUsersInGroup({
         UserPoolId: userPoolId,
-        GroupName: "Franchise",  // Capitalized as shown in your screenshot
+        GroupName: "Franchise",
         Limit: 60,
       }).promise();
 
@@ -26,10 +25,16 @@ exports.handler = async (event) => {
 
       const selectedUser = franchiseUsers[Math.floor(Math.random() * franchiseUsers.length)];
 
+      // Extract franchise email and name from Cognito attributes
+      const franchiseEmail = selectedUser.Attributes?.find(attr => attr.Name === 'email')?.Value;
+      const franchiseName = selectedUser.Attributes?.find(attr => attr.Name === 'name')?.Value;
+
       const concernRecord = {
         concern_id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         user_id: message.userId,
         franchise_id: selectedUser.Username,
+        franchise_email: franchiseEmail || null,
+        franchise_name: franchiseName || null,
         booking_ref: message.bookingRef,
         concern_text: message.concern,
         type: message.type || null,
@@ -37,18 +42,16 @@ exports.handler = async (event) => {
         timestamp: message.timestamp,
       };
 
-      // Step 2: Save concern to DynamoDB
+      // Save concern to DynamoDB
       await dynamodb.put({
         TableName: process.env.CONCERNS_TABLE,
         Item: concernRecord,
       }).promise();
 
-      // Optional: Send SNS or SES notification to franchise email
-
-      const franchiseEmail = selectedUser.Attributes.find(attr => attr.Name === 'email')?.Value;
-      if (franchiseEmail) {
+      // Send SNS notification
+      if (franchiseEmail && process.env.NOTIFY_TOPIC_ARN) {
         await sns.publish({
-          Message: `New concern assigned:\n\n${JSON.stringify(concernRecord, null, 2)}`,
+          Message: `New concern assigned to ${franchiseEmail}:\n\n${JSON.stringify(concernRecord, null, 2)}`,
           Subject: 'New DALScooter Concern Assigned',
           TopicArn: process.env.NOTIFY_TOPIC_ARN,
         }).promise();
