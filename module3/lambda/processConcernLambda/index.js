@@ -5,6 +5,13 @@ const sns = new AWS.SNS();
 
 exports.handler = async (event) => {
   try {
+    const franchiseTopicMap = {
+      "mdharma019@gmail.com": "arn:aws:sns:us-east-1:241665878536:FranchiseNotify_mdharma019",
+      "savanpatel0070@gmail.com": "arn:aws:sns:us-east-1:241665878536:FranchiseNotify_savanpatel0070",
+      "satiyapragaash23@gmail.com": "arn:aws:sns:us-east-1:241665878536:FranchiseNotify_satiyapragaash23",
+      "priyanshsolanki1@gmail.com": "arn:aws:sns:us-east-1:241665878536:FranchiseNotify_priyanshsolanki1"
+    };
+
     for (const record of event.Records) {
       const message = JSON.parse(record.body);
 
@@ -17,15 +24,12 @@ exports.handler = async (event) => {
       }).promise();
 
       const franchiseUsers = usersResponse.Users;
-
       if (!franchiseUsers.length) {
         console.error("No franchise users found.");
         continue;
       }
 
       const selectedUser = franchiseUsers[Math.floor(Math.random() * franchiseUsers.length)];
-
-      // Extract franchise email and name from Cognito attributes
       const franchiseEmail = selectedUser.Attributes?.find(attr => attr.Name === 'email')?.Value;
       const franchiseName = selectedUser.Attributes?.find(attr => attr.Name === 'name')?.Value;
 
@@ -42,34 +46,25 @@ exports.handler = async (event) => {
         timestamp: message.timestamp,
       };
 
-      // Save concern to DynamoDB
       await dynamodb.put({
         TableName: process.env.CONCERNS_TABLE,
         Item: concernRecord,
       }).promise();
 
-      // Subscribe and Notify the franchise via SNS
-      if (franchiseEmail && process.env.NOTIFY_TOPIC_ARN) {
-        // Step 1: Subscribe the email if not already subscribed
-        await sns.subscribe({
-          Protocol: "email",
-          TopicArn: process.env.NOTIFY_TOPIC_ARN,
-          Endpoint: franchiseEmail,
-        }).promise();
-
-        // Step 2: Publish notification
+      const topicArn = franchiseTopicMap[franchiseEmail];
+      if (topicArn) {
         await sns.publish({
-          Message: `Hello ${franchiseName || "Franchise"},\n\nYou have been assigned a new customer concern:\n\n${JSON.stringify(concernRecord, null, 2)}\n\nPlease log in to DALScooter to respond.`,
-          Subject: 'New DALScooter Concern Assigned',
-          TopicArn: process.env.NOTIFY_TOPIC_ARN,
+          TopicArn: topicArn,
+          Subject: "New DALScooter Concern Assigned",
+          Message: `Hello ${franchiseName || "Franchise"},\n\nYou have been assigned a new concern:\n\n${JSON.stringify(concernRecord, null, 2)}`
         }).promise();
+        console.log(`Concern assigned and email sent to ${franchiseEmail}`);
+      } else {
+        console.warn(`No SNS topic mapped for ${franchiseEmail}`);
       }
-
-      console.log(`Concern assigned to ${selectedUser.Username}`);
     }
 
     return { statusCode: 200 };
-
   } catch (error) {
     console.error("Error processing concern:", error);
     return { statusCode: 500 };
