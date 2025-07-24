@@ -124,8 +124,8 @@ const RegistrationPage = () => {
                 </button>
 
                 <div className="flex justify-between text-sm mt-4 text-gray-600">
-                  <Link to="/Auth/LoginPage" className="hover:text-purple-600">Have an account?</Link>
-                  <Link to="/Auth/FranchiseSignUpPage" className="hover:text-purple-600">Franchise Sign Up</Link>
+                  <Link to="/auth/LoginPage" className="hover:text-purple-600">Have an account?</Link>
+                  <Link to="/auth/FranchiseSignUpPage" className="hover:text-purple-600">Franchise Sign Up</Link>
                 </div>
               </Form>
             )}

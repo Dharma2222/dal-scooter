@@ -10,7 +10,7 @@ const PublicRoutes = () => {
   const { isAuthenticated } = useAuth();
 
   // If not authenticated, render nested routes; otherwise redirect to dashboard
-  return !isAuthenticated ? <Outlet /> : <Navigate to="/dashboard" replace />;
+  return !isAuthenticated ? <Outlet /> : <Navigate to="/auth/login" replace />;
 };
 
 export default PublicRoutes;

@@ -1,0 +1,110 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Cognito User Pool setup for DALScooter:
+    • custom:role attribute
+    • PostConfirmation trigger
+    • App Client (no secret)
+    • User Groups (Client, Franchise)
+
+Parameters:
+  UserPoolName:
+    Type: String
+    Default: ScooterUser
+    Description: Friendly name for the Cognito User Pool
+
+  PostConfirmationLambdaArn:
+    Type: String
+    Default: arn:aws:lambda:us-east-1:241665878536:function:post_confirmation_signup
+    Description: ARN of the Lambda to invoke after sign-up confirmation
+
+  AppClientName:
+    Type: String
+    Default: MyDalScooter
+    Description: Name for the Cognito App Client
+
+  CallbackURLs:
+    Type: CommaDelimitedList
+    Default: https://localhost:3000/auth/confirm
+    Description: Allowed OAuth callback URLs
+
+  LogoutURLs:
+    Type: CommaDelimitedList
+    Default: https://localhost:3000/
+    Description: Allowed OAuth logout URLs
+
+  GroupRoleArn:
+    Type: String
+    Default: arn:aws:iam::241665878536:role/LabRole
+    Description: IAM Role ARN that both Cognito groups will assume
+
+Resources:
+
+  ### 1) Cognito User Pool ###
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Ref UserPoolName
+      AutoVerifiedAttributes:
+        - email
+      Schema:
+        - Name: custom:role
+          AttributeDataType: String
+          Mutable: true
+          StringAttributeConstraints:
+            MinLength: "0"
+            MaxLength: "2048"
+      LambdaConfig:
+        PostConfirmation: !Ref PostConfirmationLambdaArn
+
+  ### 2) Cognito App Client ###
+  CognitoAppClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Ref AppClientName
+      UserPoolId: !Ref CognitoUserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      SupportedIdentityProviders:
+        - COGNITO
+      CallbackURLs: !Ref CallbackURLs
+      LogoutURLs:   !Ref LogoutURLs
+
+  ### 3) Cognito User Groups ###
+  CognitoGroupClient:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: Client
+      UserPoolId: !Ref CognitoUserPool
+      RoleArn: !Ref GroupRoleArn
+      Precedence: 1
+
+  CognitoGroupFranchise:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: Franchise
+      UserPoolId: !Ref CognitoUserPool
+      RoleArn: !Ref GroupRoleArn
+      Precedence: 2
+
+Outputs:
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref CognitoUserPool
+
+  UserPoolArn:
+    Description: Cognito User Pool ARN
+    Value: arn:aws:cognito-idp:us-east-1:241665878536:userpool/us-east-1_xsSoFiHJd
+
+  AppClientId:
+    Description: Cognito App Client ID
+    Value: !Ref CognitoAppClient
+
+  ClientGroupArn:
+    Description: ARN of the Client user group
+    Value: arn:aws:cognito-idp:us-east-1:241665878536:userpool/us-east-1_xsSoFiHJd/group/Client
+
+  FranchiseGroupArn:
+    Description: ARN of the Franchise user group
+    Value: arn:aws:cognito-idp:us-east-1:241665878536:userpool/us-east-1_xsSoFiHJd/group/Franchise

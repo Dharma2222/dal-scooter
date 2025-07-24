@@ -1,0 +1,688 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Complete Serverless Backend for DALScooter including:
+    • Cognito User Pool (custom:role, PostConfirmation trigger, App Client, Groups)
+    • DynamoDB Tables (Users, ScootersTable, BookingsTable, ConcernTickets)
+    • SNS Topic (UserEmail)
+    • Lambda Functions (post_confirmation_signup, GetSecurityQA, GetSecretShiftKey, RegisterUser, SendEmail)
+    • HTTP API Gateway v2 routes (/getSecurityAnswer, /getCipherKey, /register)
+
+Parameters:
+  UserPoolName:
+    Type: String
+    Default: ScooterUser
+
+  PostConfirmationLambdaArn:
+    Type: String
+    Default: arn:aws:lambda:us-east-1:241665878536:function:post_confirmation_signup
+
+  AppClientName:
+    Type: String
+    Default: MyDalScooter
+
+  CallbackURLs:
+    Type: CommaDelimitedList
+    Default: https://localhost:3000/auth/confirm
+
+  LogoutURLs:
+    Type: CommaDelimitedList
+    Default: https://localhost:3000/
+
+  GroupRoleArn:
+    Type: String
+    Default: arn:aws:iam::241665878536:role/LabRole
+
+  UserWelcomeTopicArn:
+    Type: String
+    Default: arn:aws:sns:us-east-1:241665878536:UserEmail
+
+  LambdaExecutionRoleArn:
+    Type: String
+    Default: arn:aws:iam::241665878536:role/LabRole
+    Description: ARN of existing LabRole for Lambda execution
+
+  FromAddress:
+    Type: String
+    Default: noreply@dalscooter.ca
+
+  SmtpHost:
+    Type: String
+    Default: smtp.gmail.com
+
+  SmtpUser:
+    Type: String
+    Default: dudethis100@gmail.com
+
+  SmtpPass:
+    Type: String
+    NoEcho: true
+    Description: SMTP password
+
+Resources:
+
+  ### HTTP API ###
+  DalscooterApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: dalscooter
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins: ["*"]
+        AllowMethods: ["*"]
+        AllowHeaders: ["*"]
+
+  DefaultStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref DalscooterApi
+      StageName: '$default'
+      AutoDeploy: true
+
+  DefaultRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref DalscooterApi
+      RouteKey: '$default'
+      Target:
+        Fn::Join:
+          - '/'
+          - [ integrations, !Ref RegisterIntegration ]
+
+  ### DynamoDB Tables ###
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Users
+      AttributeDefinitions:
+        - AttributeName: email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: email
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  ScootersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ScootersTable
+      AttributeDefinitions:
+        - AttributeName: scooterId
+          AttributeType: S
+        - AttributeName: companyId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: scooterId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      GlobalSecondaryIndexes:
+        - IndexName: CompanyIndex
+          KeySchema:
+            - AttributeName: companyId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  BookingsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: BookingsTable
+      AttributeDefinitions:
+        - AttributeName: bookingId
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: scooterId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: bookingId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      GlobalSecondaryIndexes:
+        - IndexName: UserIndex
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: ScooterIndex
+          KeySchema:
+            - AttributeName: scooterId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  ConcernTickets:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ConcernTickets
+      AttributeDefinitions:
+        - AttributeName: concern_id
+          AttributeType: S
+        - AttributeName: companyId
+          AttributeType: S
+        - AttributeName: scooterId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: concern_id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      GlobalSecondaryIndexes:
+        - IndexName: CompanyIndex
+          KeySchema:
+            - AttributeName: companyId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: ScooterIndex
+          KeySchema:
+            - AttributeName: scooterId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  ### SNS Topic ###
+  UserEmailTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: UserEmail
+
+  ### Cognito ###
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Ref UserPoolName
+      AutoVerifiedAttributes: [email]
+      Schema:
+        - Name: custom:role
+          AttributeDataType: String
+          Mutable: true
+          StringAttributeConstraints:
+            MinLength: "0"
+            MaxLength: "2048"
+      LambdaConfig:
+        PostConfirmation: !Ref PostConfirmationLambdaArn
+
+  CognitoAppClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Ref AppClientName
+      UserPoolId: !Ref CognitoUserPool
+      GenerateSecret: false
+      ExplicitAuthFlows: [ALLOW_USER_SRP_AUTH, ALLOW_REFRESH_TOKEN_AUTH]
+      SupportedIdentityProviders: [COGNITO]
+      CallbackURLs: !Ref CallbackURLs
+      LogoutURLs: !Ref LogoutURLs
+
+  CognitoGroupClient:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: Client
+      UserPoolId: !Ref CognitoUserPool
+      RoleArn: !Ref GroupRoleArn
+      Precedence: 1
+
+  CognitoGroupFranchise:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: Franchise
+      UserPoolId: !Ref CognitoUserPool
+      RoleArn: !Ref GroupRoleArn
+      Precedence: 2
+
+  ### Lambda Functions ###
+  PostConfirmationSignupFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: post_confirmation_signup
+      Runtime: python3.13
+      Handler: lambda_function.lambda_handler
+      Role: !Ref LambdaExecutionRoleArn
+      Timeout: 10
+      Code:
+        ZipFile: |
+          import boto3
+          def lambda_handler(event, context):
+              if event.get('triggerSource')=='PostConfirmation_ConfirmSignUp':
+                  boto3.client('cognito-idp').admin_add_user_to_group(
+                    UserPoolId=event['userPoolId'],
+                    Username=event['request']['userAttributes']['sub'],
+                    GroupName=event['request']['userAttributes']['custom:role']
+                  )
+              return event
+
+  GetSecurityQAFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: GetSecurityQA
+      Runtime: python3.11
+      Handler: lambda_function.lambda_handler
+      Role: !Ref LambdaExecutionRoleArn
+      Timeout: 10
+      Environment:
+        Variables:
+          USER_TABLE: Users
+      Code:
+        ZipFile: |
+          import os
+          import json
+          import boto3
+
+          dynamo = boto3.client('dynamodb')
+          USER_TABLE = os.environ['USER_TABLE']
+
+          def lambda_handler(event, context):
+              # Extract email from pathParameters or JSON body
+              email = None
+              if event.get('pathParameters') and event['pathParameters'].get('email'):
+                  email = event['pathParameters']['email']
+              else:
+                  try:
+                      body = json.loads(event.get('body') or '{}')
+                      email = body.get('email')
+                  except json.JSONDecodeError:
+                      pass
+
+              if not email:
+                  return {
+                      'statusCode': 400,
+                      'body': json.dumps({ 'error': 'Email is required' })
+                  }
+
+              try:
+                  resp = dynamo.get_item(
+                      TableName=USER_TABLE,
+                      Key={ 'email': { 'S': email } },
+                      ProjectionExpression='securityAnswer'
+                  )
+                  item = resp.get('Item')
+                  if not item:
+                      return {
+                          'statusCode': 404,
+                          'body': json.dumps({ 'error': 'User not found' })
+                      }
+
+                  # Only return the question; answer stays server-side
+                  return {
+                      'statusCode': 200,
+                      'body': json.dumps({
+                          'securityAnswer': item['securityAnswer']['S']
+                      })
+                  }
+
+              except Exception as e:
+                  print(f"Error fetching security QA for {email}: {e}")
+                  return {
+                      'statusCode': 500,
+                      'body': json.dumps({ 'error': 'Internal server error' })
+                  }
+
+  GetSecretShiftKeyFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: GetSecretShiftKey
+      Runtime: python3.13
+      Handler: lambda_function.lambda_handler
+      Role: !Ref LambdaExecutionRoleArn
+      Timeout: 10
+      Environment:
+        Variables:
+          USER_TABLE: Users
+      Code:
+        ZipFile: |
+          import os
+          import json
+          import boto3
+
+          dynamo = boto3.client('dynamodb')
+          USER_TABLE = "Users"
+
+          def lambda_handler(event, context):
+            # Extract email from pathParameters or JSON body
+            email = None
+            if event.get('pathParameters') and event['pathParameters'].get('email'):
+              email = event['pathParameters']['email']
+            else:
+            try:
+              body = json.loads(event.get('body') or '{}')
+              email = body.get('email')
+            except json.JSONDecodeError:
+              pass
+
+            if not email:
+              return {
+                'statusCode': 400,
+                'body': json.dumps({ 'error': 'Email is required' })
+              }
+
+              try:
+                resp = dynamo.get_item(
+                  TableName=USER_TABLE,
+                  Key={ 'email': { 'S': email } },
+                  ProjectionExpression='shiftKey'
+              )
+              item = resp.get('Item')
+              if not item:
+              return {
+                'statusCode': 404,
+                'body': json.dumps({ 'error': 'User not found' })
+            }
+
+            # Only return the question; answer stays server-side
+            return {
+              'statusCode': 200,
+              'body': json.dumps({
+                'shiftKey': item['shiftKey']['N']
+              })
+            }
+
+            except Exception as e:
+              print(f"Error fetching Shift Key for {email}: {e}")
+              return {
+                'statusCode': 500,
+                'body': json.dumps({ 'error': 'Internal server error' })
+              }
+
+
+  RegisterUserFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: RegisterUser
+      Runtime: nodejs22.x
+      Handler: index.handler
+      Role: !Ref LambdaExecutionRoleArn
+      Timeout: 10
+      Environment:
+        Variables:
+          USER_WELCOME_TOPIC_ARN: !Ref UserWelcomeTopicArn
+      Code:
+        ZipFile: |
+          import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+          import { PutCommand, DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+          import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
+
+          const client = new DynamoDBClient({});
+          const docClient = DynamoDBDocumentClient.from(client);
+          const snsClient = new SNSClient({});
+          const WELCOME_TOPIC_ARN = process.env.USER_WELCOME_TOPIC_ARN;
+
+          export const handler = async (event) => {
+            if (!event.body) {
+              return {
+                statusCode: 400,
+                body: JSON.stringify({
+                  error: 'Missing body',
+                  message: 'Please provide a body'
+                })
+              };
+            }
+            const data = JSON.parse(event.body);
+            
+            // 1. Input Validation
+            const requiredFields = ['email', 'name', 'shiftKey', 'role', 'securityAnswer'];
+            const missingFields = requiredFields.filter(field => !data[field]);
+            if (missingFields.length > 0) {
+              return {
+                statusCode: 400,
+                body: JSON.stringify({
+                  error: 'Missing required fields',
+                  missingFields,
+                  message: `Please provide: ${missingFields.join(', ')}`
+                })
+              };
+            }
+
+            const { email, name, shiftKey, role, securityAnswer } = data;
+
+            // Field-specific validation
+            const validationErrors = [];
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+              validationErrors.push('Invalid email format');
+            }
+            if (typeof shiftKey !== 'number' || shiftKey < 1 || shiftKey > 25) {
+              validationErrors.push('Shift key must be a number between 1-25');
+            }
+            if (securityAnswer.length < 3) {
+              validationErrors.push('Security answer must be at least 3 characters');
+            }
+            if (validationErrors.length > 0) {
+              return {
+                statusCode: 400,
+                body: JSON.stringify({
+                  error: 'Validation failed',
+                  details: validationErrors
+                })
+              };
+            }
+
+            // 2. Prepare database item
+            const params = {
+              TableName: 'Users',
+              Item: {
+                email,
+                name,
+                shiftKey,
+                role,
+                securityAnswer: securityAnswer.toLowerCase(),
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              },
+              ConditionExpression: 'attribute_not_exists(email)'
+            };
+
+            try {
+              // 3. Store data
+              await docClient.send(new PutCommand(params));
+
+              // 4. Publish welcome email
+              if (WELCOME_TOPIC_ARN) {
+                const emailMessage = {
+                  to: email,
+                  subject: `Welcome to Our Service, ${name}!`,
+                  body: `Hello ${name},\n\nThank you for registering as a ${role}. We're excited to have you on board!\n\nBest regards,\nThe Team`
+                };
+                await snsClient.send(new PublishCommand({
+                  TopicArn: WELCOME_TOPIC_ARN,
+                  Message: JSON.stringify(emailMessage)
+                }));
+              }
+
+              return {
+                statusCode: 200,
+                body: JSON.stringify({ message: 'Registration successful', email, name })
+              };
+            } catch (error) {
+              console.error('Database error:', error);
+              if (error.name === 'ConditionalCheckFailedException') {
+                return {
+                  statusCode: 409,
+                  body: JSON.stringify({
+                    error: 'Email already registered',
+                    message: 'This email address is already in use'
+                  })
+                };
+              }
+              return {
+                statusCode: 500,
+                body: JSON.stringify({
+                  error: 'Registration failed',
+                  message: 'Could not complete registration. Please try again.'
+                })
+              };
+            }
+          };
+
+  SendEmailFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: SendEmail
+      Runtime: python3.13
+      Handler: lambda_function.lambda_handler
+      Role: !Ref LambdaExecutionRoleArn
+      Timeout: 10
+      Environment:
+        Variables:
+          FROM_ADDRESS: !Ref FromAddress
+          SMTP_HOST:    !Ref SmtpHost
+          SMTP_USER:    !Ref SmtpUser
+          SMTP_PASS:    !Ref SmtpPass
+      Code:
+        ZipFile: |
+          import os
+          import json
+          import logging
+          import smtplib
+          from email.message import EmailMessage
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          SMTP_HOST = os.environ['SMTP_HOST']
+          SMTP_PORT = int(os.environ.get('SMTP_PORT', 587))
+          SMTP_USER = os.environ['SMTP_USER']
+          SMTP_PASS = os.environ['SMTP_PASS']
+          FROM_ADDRESS = os.environ['FROM_ADDRESS']
+
+          def lambda_handler(event, context):
+              logger.info("Received SNS event: %s", json.dumps(event))
+              results = []
+
+              for record in event.get('Records', []):
+                  if record.get('EventSource') != 'aws:sns':
+                      continue
+                  sns = record['Sns']
+                  msg_id = sns.get('MessageId')
+                  try:
+                      message = json.loads(sns.get('Message', '{}'))
+                      to = message['to']
+                      subject = message['subject']
+                      body = message['body']
+
+                      email_msg = EmailMessage()
+                      email_msg['From'] = FROM_ADDRESS
+                      email_msg['To'] = to
+                      email_msg['Subject'] = subject
+                      email_msg.set_content(body)
+
+                      with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as smtp:
+                          smtp.starttls()
+                          smtp.login(SMTP_USER, SMTP_PASS)
+                          smtp.send_message(email_msg)
+
+                      logger.info("Email sent to %s", to)
+                      results.append({'to': to, 'success': True, 'messageId': msg_id})
+                  except Exception as e:
+                      logger.error("Error sending email for message %s: %s", msg_id, str(e))
+                      results.append({'messageId': msg_id, 'success': False, 'error': str(e)})
+
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps({'results': results})
+              }
+
+  SendEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref UserEmailTopic
+      Protocol: lambda
+      Endpoint: !GetAtt SendEmailFunction.Arn
+
+  SendEmailInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref SendEmailFunction
+      Action: lambda:InvokeFunction
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref UserEmailTopic
+
+  ### Integrations & Routes ###
+  GetSecurityQAIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref DalscooterApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt GetSecurityQAFunction.Arn
+      PayloadFormatVersion: "2.0"
+
+  GetCipherKeyIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref DalscooterApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt GetSecretShiftKeyFunction.Arn
+      PayloadFormatVersion: "2.0"
+
+  RegisterIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref DalscooterApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt RegisterUserFunction.Arn
+      PayloadFormatVersion: "2.0"
+
+  RouteGetSecurity:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref DalscooterApi
+      RouteKey: "ANY /getSecurityAnswer"
+      Target:
+        Fn::Join:
+          - "/"
+          - [ integrations, !Ref GetSecurityQAIntegration ]
+
+  RouteGetCipher:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref DalscooterApi
+      RouteKey: "ANY /getCipherKey"
+      Target:
+        Fn::Join:
+          - "/"
+          - [ integrations, !Ref GetCipherKeyIntegration ]
+
+  RouteRegister:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref DalscooterApi
+      RouteKey: "ANY /register"
+      Target:
+        Fn::Join:
+          - "/"
+          - [ integrations, !Ref RegisterIntegration ]
+
+  ### Invoke Permissions ###
+  LambdaPermissionGetSecurity:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref GetSecurityQAFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${DalscooterApi}/*/*/getSecurityAnswer
+
+  LambdaPermissionGetCipher:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref GetSecretShiftKeyFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${DalscooterApi}/*/*/getCipherKey
+
+  LambdaPermissionRegister:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref RegisterUserFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${DalscooterApi}/*/*/register
+
+Outputs:
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref CognitoUserPool
+
+  AppClientId:
+    Description: Cognito App Client ID
+    Value: !Ref CognitoAppClient
+
+  ApiEndpoint:
+    Description: HTTP API endpoint
+    Value: !GetAtt DalscooterApi.ApiEndpoint

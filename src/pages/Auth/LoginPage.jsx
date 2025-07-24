@@ -14,6 +14,8 @@
   } from 'amazon-cognito-identity-js';
   import { COGNITO_CONFIG } from '../../config/awsCognitoConfig';
 
+  
+  
   const userPool = new CognitoUserPool(COGNITO_CONFIG);
   const generateRandomCaps = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -202,18 +204,21 @@
         // Step 3: Verify user's answer against the generated cipher text
         if (values.cipherAnswer === cipherAnswer) {
           setLoading(true);
-          debugger;
+          console.log(credentials);
           completeAuth({user:{email:values.email,role:getUserRoleFromToken(credentials.jwtToken)},token :credentials.jwtToken || jwtToken});
-            navigate('/dashboard');
+          const token = credentials.jwtToken || jwtToken;
+          const role = getUserRoleFromToken(token);
+          if (role === 'Client') {
+            navigate('/user');          
+          } else if (role === 'Franchise') {
+            navigate('/partner');       
+          } else {
+            console.warn('Unknown role:', role);
+            navigate('/');              // fallback
+          }
             setLoading(false);
             setSubmitting(false);
-          // Complete authentication with the stored JWT token
-          // setTimeout(() => {
-          //   completeAuth(credentials.jwtToken || jwtToken);
-          //   navigate('/dashboard');
-          //   setLoading(false);
-          //   setSubmitting(false);
-          // }, 1000);
+         
         } else {
           setErrors({ cipherAnswer: 'Incorrect cipher. Please try again.' });
           setSubmitting(false);
@@ -325,8 +330,8 @@
                   </button>
 
                   <div className="flex justify-between text-sm text-gray-600">
-                    <Link to="/Auth/RegistrationPage" className="hover:text-purple-700">Create an account</Link>
-                    <Link to="/Auth/FranchiseSignUpPage" className="hover:text-purple-700">Franchise sign up</Link>
+                    <Link to="/auth/RegistrationPage" className="hover:text-purple-700">Create an account</Link>
+                    <Link to="/auth/FranchiseSignUpPage" className="hover:text-purple-700">Franchise sign up</Link>
                   </div>
                 </Form>
               )}

@@ -32,7 +32,7 @@ export default function ConfirmSignUpPage() {
             Username: state.email,
             Pool: pool
           });
-
+          console.log(code,"code");
           // 1) Confirm signup in Cognito
           user.confirmRegistration(code, true, async (err) => {
             if (err) {
@@ -59,7 +59,7 @@ export default function ConfirmSignUpPage() {
             }
 
             // 3) Redirect to login
-            navigate(state.role == "Client"?'/Auth/LoginPage':'/Auth/FranchiseLoginPage');
+            navigate(state.role == "Client"?'/auth/LoginPage':'/auth/FranchiseLoginPage');
           });
         }}
       >
@@ -85,7 +85,7 @@ export default function ConfirmSignUpPage() {
       </Formik>
       <p className="mt-4 text-center text-sm">
         Didn’t receive a code?{' '}
-        <Link to="/Auth/RegistrationPage" className="text-purple-600 hover:underline">
+        <Link to="/auth/RegistrationPage" className="text-purple-600 hover:underline">
           Back to Sign Up
         </Link>
       </p>
