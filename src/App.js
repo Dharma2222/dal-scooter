@@ -34,6 +34,8 @@ import PartnerDashboardPage from './pages/partner/PartnerDashboard';
 import CreateScooterForm    from './pages/partner/CreateScooterForm';
 import ScooterHistoryPage   from './pages/partner/ScooterHistoryPage';
 
+import ConcernForm from './pages/ConcernForm'; 
+
 function App() {
   // This fixes the missing marker icon issue in React apps
 delete L.Icon.Default.prototype._getIconUrl;
@@ -53,7 +55,8 @@ L.Icon.Default.mergeOptions({
           <Route path="/auth/confirm"            element={<ConfirmSignUpPage />} />
           <Route path="/auth/login"              element={<LoginPage />} />
           <Route path="/auth/franchise-signup"   element={<FranchiseSignUpPage />} />
-        
+          
+          <Route path="/concerns" element={<ConcernForm />} />
 
         {/* PROTECTED: only for authenticated users */}
         <Route element={<ProtectedRoutes />}>

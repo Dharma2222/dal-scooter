@@ -1,0 +1,1 @@
+{"body":"{\"bookingRef\":\"TEST-REF-001\",\"concern\":\"Scooter is not charging.\",\"type\":\"battery\"}","requestContext":{"authorizer":{"claims":{"sub":"user-xyz-123"}}}}
