@@ -52,6 +52,16 @@ export default function ConfirmSignUpPage() {
                 role: state.role
 
               });
+              // ✅ Call the notification Lambda API
+              await fetch("https://fv3uizm1fd.execute-api.us-east-1.amazonaws.com/send-email", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  email: state.email,
+                  subject: "DALScooter Registration Successful!",
+                  body: `Hi ${state.name},\n\nYour registration as a ${state.role} was successful.\n\nWelcome to DALScooter!`
+                })
+              });
             } catch (apiErr) {
               setErrors({ code: apiErr.message || 'Failed to save user details' });
               setSubmitting(false);
