@@ -118,12 +118,20 @@
 
             // Store the JWT token
             setJwtToken(accessToken);
+            cognitoUser.getUserAttributes((err, attributes) => {
+              let name = email;
             
-            resolve({
-              accessToken,
-              idToken,
-              refreshToken,
-              user: cognitoUser
+              if (!err && attributes) {
+                const nameAttr = attributes.find(attr => attr.getName() === "name");
+                if (nameAttr) name = nameAttr.getValue();
+              }
+              resolve({
+                accessToken,
+                idToken,
+                refreshToken,
+                user: cognitoUser,
+                name
+              });
             });
           },
           onFailure: (err) => {
@@ -168,7 +176,8 @@
           saveCredentials({ 
             email: values.email, 
             password: values.password,
-            jwtToken: authResult.accessToken 
+            jwtToken: authResult.accessToken, 
+            name: authResult.name
           });
           nextStep();
         } catch (error) {
@@ -208,6 +217,20 @@
           completeAuth({user:{email:values.email,role:getUserRoleFromToken(credentials.jwtToken)},token :credentials.jwtToken || jwtToken});
           const token = credentials.jwtToken || jwtToken;
           const role = getUserRoleFromToken(token);
+          const userName = credentials.name || values.email;
+          try {
+            await fetch("https://fv3uizm1fd.execute-api.us-east-1.amazonaws.com/send-email", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: values.email,
+                subject: "DALScooter Login Successful!",
+                body: `Hi ${userName},\n\nYou have successfully logged in to your ${role} account.\n\nWelcome back to DALScooter!`
+              })
+            });
+          } catch (e) {
+            console.warn("Login notification email failed:", e);
+          }
           if (role === 'Client') {
             navigate('/user');          
           } else if (role === 'Franchise') {
