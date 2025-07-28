@@ -185,3 +185,33 @@ resource "aws_lambda_permission" "allow_sqs_invoke_notification_lambda" {
   principal     = "sqs.amazonaws.com"
   source_arn    = aws_sqs_queue.notification_queue.arn
 }
+
+# -------------------------
+# Lambda: PublishNotificationLambda (API entrypoint)
+# -------------------------
+resource "aws_lambda_function" "publish_notification_lambda" {
+  function_name = "PublishNotificationLambda"
+  handler       = "index.handler"
+  runtime       = "nodejs18.x"
+
+  filename         = "publishNotificationLambda.zip"
+  source_code_hash = filebase64sha256("publishNotificationLambda.zip")
+  role             = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/LabRole"
+
+  environment {
+    variables = {
+      NOTIFICATION_TOPIC_ARN = aws_sns_topic.notification_topic.arn
+    }
+  }
+}
+
+# -------------------------
+# API Gateway Permission to invoke PublishNotificationLambda
+# -------------------------
+resource "aws_lambda_permission" "allow_apigateway_invoke_publish_notification" {
+  statement_id  = "AllowAPIGatewayInvokeNotification"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.publish_notification_lambda.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "arn:aws:execute-api:us-east-1:${data.aws_caller_identity.current.account_id}:fv3uizm1fd/*/*/send-email"
+}
