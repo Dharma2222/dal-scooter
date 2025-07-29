@@ -1,0 +1,10 @@
+{
+  "name": "dialogflow-scooter-webhook",
+  "version": "1.0.0",
+  "description": "Webhook for Dialogflow scooter lookup",
+  "main": "index.js",
+  "dependencies": {
+    "@google-cloud/functions-framework": "^3.0.0",
+    "axios": "^1.0.0"
+  }
+}

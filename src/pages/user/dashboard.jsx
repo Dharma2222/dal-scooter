@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { LogOut } from 'lucide-react';
+import React, { useEffect } from "react";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { LogOut } from "lucide-react";
+import DALScooterChatBubble from "../../components/DALScooterChatBubble";
 
 export default function UserDashboardPage() {
   const { authUser, logout, isAuthenticated } = useAuth();
@@ -9,7 +10,7 @@ export default function UserDashboardPage() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate('/auth/login', { replace: true });
+      navigate("/auth/login", { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
@@ -23,7 +24,11 @@ export default function UserDashboardPage() {
           <h2 className="text-lg font-semibold">
             Hi, {authUser?.name || authUser?.email || "User"}
           </h2>
-          <button onClick={logout} className="text-red-500 hover:text-red-700" title="Logout">
+          <button
+            onClick={logout}
+            className="text-red-500 hover:text-red-700"
+            title="Logout"
+          >
             <LogOut size={20} />
           </button>
         </div>
@@ -33,7 +38,10 @@ export default function UserDashboardPage() {
               <NavLink
                 to="/user/booking"
                 className={({ isActive }) =>
-                  "block px-6 py-3 transition " + (isActive ? "bg-green-100 font-semibold" : "hover:bg-gray-200")
+                  "block px-6 py-3 transition " +
+                  (isActive
+                    ? "bg-green-100 font-semibold"
+                    : "hover:bg-gray-200")
                 }
               >
                 Book Scooter
@@ -43,7 +51,10 @@ export default function UserDashboardPage() {
               <NavLink
                 to="/user/history"
                 className={({ isActive }) =>
-                  "block px-6 py-3 transition " + (isActive ? "bg-green-100 font-semibold" : "hover:bg-gray-200")
+                  "block px-6 py-3 transition " +
+                  (isActive
+                    ? "bg-green-100 font-semibold"
+                    : "hover:bg-gray-200")
                 }
               >
                 My Booking History
@@ -56,6 +67,7 @@ export default function UserDashboardPage() {
       <main className="flex-1 p-6">
         <Outlet />
       </main>
+      <DALScooterChatBubble />
     </div>
   );
 }
