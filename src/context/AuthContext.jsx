@@ -7,7 +7,7 @@ const AuthContext = createContext();
 // Add prevStep & logout, rehydrate token, memoize contextValue
 
 export const AuthProvider = ({ children }) => {
-    const [credentials, setCredentials] = useState({ email:'', password:'', securityAnswer:'', shiftKey:'' });
+    const [credentials, setCredentials] = useState({ email:'', password:'', securityAnswer:'', shiftKey:'',userId:'' });
     const [step, setStep]         = useState(1);
     const [token, setToken]       = useState(() => localStorage.getItem('authToken') || null);
     const [authUser, setAuthUser]       = useState(() => JSON.parse(localStorage.getItem('authUser')) || null);
@@ -30,13 +30,13 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('authUser');
 
       setStep(1);
-      setCredentials({ email:'', password:'', securityAnswer:'', shiftKey:'' });
+      setCredentials({ email:'', password:'', securityAnswer:'', shiftKey:'',userId:'' });
     };
   
     const isAuthenticated = Boolean(token);
   
     const contextValue = React.useMemo(() => ({
-      credentials, step, isAuthenticated,
+      credentials, step, isAuthenticated,token,
       saveCredentials, nextStep, prevStep, completeAuth, logout,authUser
     }), [credentials, step, isAuthenticated]);
   

@@ -205,3 +205,37 @@ export async function fetchScooterHistory(companyId, scooterId) {
   if (!resp.ok) throw new Error(`Fetch scooter history failed: ${resp.status}`);
   return resp.json();
 }
+
+export async function createFeedback(data, token) {
+  const resp = await fetch(`${API_BASE_URL}/feedback`, {
+    method: 'POST',
+    headers: {
+      'Content-Type':'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  if (!resp.ok) throw new Error(await resp.text());
+  return resp.json();
+}
+
+export async function listFeedback({ bookingId, userId }) {
+  const qs = bookingId
+    ? `?bookingId=${encodeURIComponent(bookingId)}`
+    : userId
+      ? `?userId=${encodeURIComponent(userId)}`
+      : '';
+
+  const resp = await fetch(
+    API_BASE_URL + API_ROUTES.LIST_FEEDBACK + qs,
+    {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+      }
+    }
+  );
+  if (!resp.ok) {
+    throw new Error(`Fetch feedback failed: ${resp.status}`);
+  }
+  return resp.json();
+}

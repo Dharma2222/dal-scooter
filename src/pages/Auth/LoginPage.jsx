@@ -171,13 +171,13 @@
           // Authenticate with AWS Cognito
           const authResult = await authenticateWithCognito(values.email, values.password);
           // Extract role
-
           // Save credentials including JWT token
           saveCredentials({ 
             email: values.email, 
             password: values.password,
             jwtToken: authResult.accessToken, 
-            name: authResult.name
+            name: authResult.name,
+            userId:authResult.user.username
           });
           nextStep();
         } catch (error) {
@@ -213,8 +213,7 @@
         // Step 3: Verify user's answer against the generated cipher text
         if (values.cipherAnswer === cipherAnswer) {
           setLoading(true);
-          console.log(credentials);
-          completeAuth({user:{email:values.email,role:getUserRoleFromToken(credentials.jwtToken)},token :credentials.jwtToken || jwtToken});
+          completeAuth({user:{userId:credentials.userId,email:values.email,role:getUserRoleFromToken(credentials.jwtToken)},token :credentials.jwtToken || jwtToken});
           const token = credentials.jwtToken || jwtToken;
           const role = getUserRoleFromToken(token);
           const userName = credentials.name || values.email;
