@@ -33,8 +33,10 @@ import BookingHistoryPage   from './pages/user/BookingHistoryPage';
 import PartnerDashboardPage from './pages/partner/PartnerDashboard';
 import CreateScooterForm    from './pages/partner/CreateScooterForm';
 import ScooterHistoryPage   from './pages/partner/ScooterHistoryPage';
+import ScooterHistoryListPage from './pages/partner/ScooterHistoryListPage';
 
 import ConcernForm from './pages/ConcernForm'; 
+import PartnerOutlet from './pages/partner/PartnerOutlet';
 
 function App() {
   // This fixes the missing marker icon issue in React apps
@@ -70,10 +72,11 @@ L.Icon.Default.mergeOptions({
           </Route>
 
           {/* Partner Dashboard */}
-          <Route path="/partner" element={<PartnerDashboardPage />}>
+          <Route path="/partner"  element={<PartnerOutlet />}>
             <Route index                               element={<Navigate to="scooters" replace />} />
-            <Route path="scooters"                     element={<CreateScooterForm />} />
+            <Route path="scooters"                     element={<PartnerDashboardPage />} />
             <Route path="scooters/:scooterId/history"  element={<ScooterHistoryPage />} />
+            <Route path="scooters/history" element={<ScooterHistoryListPage />} />
           </Route>
 
         </Route>

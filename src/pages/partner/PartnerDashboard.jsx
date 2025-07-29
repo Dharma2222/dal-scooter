@@ -71,7 +71,6 @@ export default function PartnerDashboardPage() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
       <main className="flex-1 p-6 space-y-6">
         <h1 className="text-2xl font-bold">Partner Dashboard</h1>
         {/* Toggle button for CreateScooterForm */}
