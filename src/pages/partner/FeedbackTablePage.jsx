@@ -66,7 +66,8 @@ export default function FeedbackTablePage() {
         row.comment?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         row.scooterId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         row.scooterName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        row.userId?.toLowerCase().includes(searchTerm.toLowerCase())
+        row.userId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        row.email?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -290,6 +291,9 @@ export default function FeedbackTablePage() {
                       {isPartner && (
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-mono text-gray-900">{r.userId}</div>
+                          {r.email && (
+                            <div className="text-sm text-gray-500">{r.email}</div>
+                          )}
                         </td>
                       )}
                       <td className="px-6 py-4 whitespace-nowrap">

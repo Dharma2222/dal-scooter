@@ -11,6 +11,8 @@ import 'leaflet/dist/leaflet.css';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+import FeedbackPage from './pages/user/FeedbackPage';
+
 
 
 // Route guards
@@ -62,8 +64,8 @@ L.Icon.Default.mergeOptions({
           <Route path="/auth/confirm"            element={<ConfirmSignUpPage />} />
           <Route path="/auth/login"              element={<LoginPage />} />
           <Route path="/auth/franchise-signup"   element={<FranchiseSignUpPage />} />
-          <Route path="/feedback-table" element={<FeedbackTablePage />} />
-          
+          <Route path="/feedback" element={<FeedbackPage />} />
+
           <Route path="/concerns" element={<ConcernForm />} />
 
         {/* PROTECTED: only for authenticated users */}
@@ -75,15 +77,18 @@ L.Icon.Default.mergeOptions({
             <Route index               element={<Navigate to="booking" replace />} />
             <Route path="booking"      element={<BookingPage />} />
             <Route path="history"      element={<BookingHistoryPage />} />
+            <Route path="feedback" element={<FeedbackPage />} />
+
           </Route>
 
           {/* Partner Dashboard */}
           <Route path="/partner"  element={<PartnerOutlet />}>
-            <Route index                               element={<Navigate to="scooters" replace />} />
-            <Route path="scooters"                     element={<PartnerDashboardPage />} />
+            <Route index                               element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard"                     element={<PartnerDashboardPage />} />
             <Route path="scooters/:scooterId/history"  element={<ScooterHistoryPage />} />
             <Route path="scooters/history" element={<ScooterHistoryListPage />} />
             <Route path="analytics"                   element={<PartnerAnalyticsPage />} />
+            <Route path="feedback-table" element={<FeedbackTablePage />} />
           </Route>
 
         </Route>

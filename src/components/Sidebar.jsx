@@ -10,7 +10,9 @@ import {
   Plus,
   FileText,
   Zap,
-  BarChart3
+  BarChart3,
+  ChevronRight,
+  MessageSquare
 } from 'lucide-react';
 
 const menuConfig = {
@@ -21,19 +23,18 @@ const menuConfig = {
   ],
   user: [
     { to: '/user/booking', icon: <Bike size={18} />, label: 'Book Scooter' },
-    { to: '/user/history', icon: <Clock size={18} />, label: 'My Booking History' }
+    { to: '/user/history', icon: <Clock size={18} />, label: 'My Booking History' },
+    { to: '/user/feedback',icon:<MessageSquare size={18}/>,label:'Feedbacks' }
   ],
   partner: [
-    { to: '/partner', icon: <Home size={18} />, label: 'Dashboard' },
+    { to: '/partner/dashboard', icon: <Home size={18} />, label: 'Dashboard' },
     {
       to: '/partner/scooters/history',
       icon: <FileText size={18} />,
       label: 'Scooter History'
     },
-    
-    { to: '/feedback-table', icon: <FileText size={18} />, label: 'View Feedback' },
-    { to: '/partner/analytics',        icon: <BarChart3 size={18} />,  label: 'Analytics' }
-
+    { to: '/partner/feedback-table', icon: <FileText size={18} />, label: 'View Feedback' },
+    { to: '/partner/analytics', icon: <BarChart3 size={18} />, label: 'Analytics' }
   ]
 };
 
@@ -54,134 +55,117 @@ export default function Sidebar() {
     navigate('/auth/login');
   };
 
+  const getRoleDisplayName = (role) => {
+    switch (role) {
+      case 'partner':
+        return 'Partner';
+      case 'user':
+        return 'Customer';
+      default:
+        return 'Guest';
+    }
+  };
+
+  const getRoleBadgeColor = (role) => {
+    switch (role) {
+      case 'partner':
+        return 'bg-blue-100 text-blue-800';
+      case 'user':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   return (
-    <aside style={styles.sidebar}>
-      <div style={styles.header}>
-        <div style={styles.brandContainer}>
-          <div style={styles.brandIcon}>
-            <Zap size={24} color="#fff" />
+    <aside className="w-72 bg-white border-r border-gray-200 min-h-screen flex flex-col shadow-sm">
+      {/* Header */}
+      <div className="p-6 border-b border-gray-100">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-10 h-10 bg-blue-600 rounded-lg">
+            <Zap size={20} className="text-white" />
           </div>
           <div>
-            <h2 style={styles.brandTitle}>DALScooter</h2>
-            <p style={styles.brandSubtitle}>Management Platform</p>
+            <h2 className="text-lg font-bold text-gray-900">DALScooter</h2>
+            <p className="text-sm text-gray-500">Management Platform</p>
           </div>
         </div>
       </div>
 
+      {/* User Section */}
       {isAuthenticated && authUser && (
-        <div style={styles.userSection}>
-          <div style={styles.userAvatar}>
-            <span style={styles.userInitial}>
-              {authUser.name?.[0].toUpperCase() || 'U'}
-            </span>
-          </div>
-          <div style={styles.userDetails}>
-            <p style={styles.userName}>{authUser.name || authUser.email}</p>
-            <p style={styles.userRole}>
-              {role === 'partner' ? 'Partner' : role === 'user' ? 'Customer' : 'Guest'}
-            </p>
+        <div className="p-4 border-b border-gray-100 bg-gray-50">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-full">
+              <span className="text-sm font-semibold text-blue-700">
+                {authUser.name?.[0]?.toUpperCase() || authUser.email?.[0]?.toUpperCase() || 'U'}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {authUser.name || authUser.email}
+              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColor(role)}`}>
+                  {getRoleDisplayName(role)}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      <nav style={styles.navigation}>
-        {menu.map(item => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            style={({ isActive }) => ({
-              ...styles.navItem,
-              ...(isActive ? styles.navItemActive : styles.navItemInactive)
-            })}
-          >
-            <span style={styles.navIcon}>{item.icon}</span>
-            <span>{item.label}</span>
-          </NavLink>
-        ))}
+      {/* Navigation */}
+      <nav className="flex-1 p-4">
+        <div className="space-y-1">
+          {menu.map((item, index) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                `group flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  isActive
+                    ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600'
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <span className={`flex-shrink-0 ${isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}`}>
+                    {item.icon}
+                  </span>
+                  <span className="flex-1 truncate">{item.label}</span>
+                  {isActive && (
+                    <ChevronRight size={16} className="text-blue-600" />
+                  )}
+                </>
+              )}
+            </NavLink>
+          ))}
+        </div>
       </nav>
 
+      {/* Footer - Logout */}
       {isAuthenticated && (
-        <div style={styles.footer}>
-          <button style={styles.logoutButton} onClick={handleLogout}>
-            <LogOut size={18} style={styles.logoutIcon} />
+        <div className="p-4 border-t border-gray-100">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-red-50 hover:text-red-700 transition-all duration-200 group"
+          >
+            <LogOut size={18} className="flex-shrink-0 text-gray-400 group-hover:text-red-600" />
             <span>Sign Out</span>
           </button>
         </div>
       )}
+
+      {/* Version Info */}
+      <div className="p-4 border-t border-gray-100">
+        <div className="text-xs text-gray-400 text-center">
+          <p>DALScooter Platform</p>
+          <p>Version 2.0</p>
+        </div>
+      </div>
     </aside>
   );
 }
-
-const styles = {
-  sidebar: {
-    width: 280,
-    backgroundColor: '#fff',
-    borderRight: '1px solid #e5e7eb',
-    minHeight: '100vh',
-    display: 'flex',
-    flexDirection: 'column',
-    fontFamily: 'system-ui'
-  },
-  header: {
-    padding: '1.5rem',
-    borderBottom: '1px solid #e5e7eb',
-    backgroundColor: '#f8fafc'
-  },
-  brandContainer: { display: 'flex', alignItems: 'center', gap: '0.75rem' },
-  brandIcon: {
-    padding: '0.5rem',
-    backgroundColor: '#2563eb',
-    borderRadius: '0.5rem'
-  },
-  brandTitle: { margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#111827' },
-  brandSubtitle: { margin: 0, fontSize: '0.875rem', color: '#6b7280' },
-  userSection: { display: 'flex', alignItems: 'center', padding: '1rem' },
-  userAvatar: {
-    width: 32,
-    height: 32,
-    backgroundColor: '#dbeafe',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: '0.75rem'
-  },
-  userInitial: { fontSize: '0.875rem', fontWeight: 600, color: '#2563eb' },
-  userDetails: { flex: 1, overflow: 'hidden' },
-  userName: {
-    margin: 0,
-    fontSize: '0.875rem',
-    fontWeight: 600,
-    color: '#111827',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis'
-  },
-  userRole: { margin: 0, fontSize: '0.75rem', color: '#6b7280', textTransform: 'capitalize' },
-  navigation: { flex: 1, padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' },
-  navItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.75rem',
-    padding: '0.75rem',
-    borderRadius: '0.5rem',
-    textDecoration: 'none',
-    transition: 'background 0.15s'
-  },
-  navItemActive: { backgroundColor: '#eff6ff', color: '#1d4ed8', borderRight: '3px solid #2563eb' },
-  navItemInactive: {},
-  navIcon: { display: 'flex', alignItems: 'center' },
-  footer: { borderTop: '1px solid #e5e7eb' },
-  logoutButton: {
-    width: '100%',
-    padding: '0.75rem 1rem',
-    background: 'transparent',
-    border: 'none',
-    borderRadius: '0.5rem',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.75rem'
-  },
-  logoutIcon: { flexShrink: 0 }
-};
