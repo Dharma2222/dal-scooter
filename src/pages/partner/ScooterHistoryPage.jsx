@@ -35,17 +35,20 @@ export default function ScooterHistoryPage() {
     const completedBookings = totalBookings - activeBookings;
     
     let totalDuration = 0;
+    let totalRevenue  = 0;
     history.forEach(booking => {
       if (booking.endTime) {
         const start = new Date(booking.startTime);
         const end = new Date(booking.endTime);
         totalDuration += (end - start) / (1000 * 60); // minutes
+        totalRevenue  += (booking.fare || 0);
       }
     });
     
     const avgDuration = completedBookings > 0 ? Math.round(totalDuration / completedBookings) : 0;
+    const avgFare     = completedBookings > 0 ? (totalRevenue / completedBookings).toFixed(2) : 0;
     
-    return { totalBookings, activeBookings, completedBookings, avgDuration };
+    return { totalBookings, activeBookings, completedBookings, avgDuration, totalRevenue: totalRevenue.toFixed(2), avgFare };
   };
 
   const formatDuration = (startTime, endTime) => {
@@ -165,6 +168,20 @@ export default function ScooterHistoryPage() {
           </div>
           <span style={styles.statValue}>{stats.avgDuration}m</span>
         </div>
+        <div style={styles.statCard}>
+        <div style={styles.statHeader}>
+          <TrendingUp size={20} style={{ ...styles.statIcon, color: '#9333ea' }} />
+          <span style={styles.statLabel}>Total Revenue</span>
+        </div>
+        <span style={styles.statValue}>${stats.totalRevenue}</span>
+      </div>
+      <div style={styles.statCard}>
+        <div style={styles.statHeader}>
+          <Clock size={20} style={{ ...styles.statIcon, color: '#d97706' }} />
+          <span style={styles.statLabel}>Avg Fare</span>
+        </div>
+        <span style={styles.statValue}>${stats.avgFare}</span>
+      </div>
       </div>
 
       {/* History Table */}
@@ -189,6 +206,7 @@ export default function ScooterHistoryPage() {
                   <th style={styles.tableHeaderCell}>Start Time</th>
                   <th style={styles.tableHeaderCell}>End Time</th>
                   <th style={styles.tableHeaderCell}>Duration</th>
+                  <th style={styles.tableHeaderCell}>Fare</th>
                   <th style={styles.tableHeaderCell}>Status</th>
                 </tr>
               </thead>
@@ -219,6 +237,7 @@ export default function ScooterHistoryPage() {
                         </span>
                       </div>
                     </td>
+                    
                     <td style={styles.tableCell}>
                       {booking.endTime ? (
                         <div style={styles.timeContainer}>
@@ -233,10 +252,14 @@ export default function ScooterHistoryPage() {
                         <span style={styles.inProgress}>In progress</span>
                       )}
                     </td>
+                  
                     <td style={styles.tableCell}>
                       {formatDuration(booking.startTime, booking.endTime) || (
                         <span style={styles.noDuration}>-</span>
                       )}
+                    </td>
+                    <td style={styles.tableCell}>
+                      {booking.fare}
                     </td>
                     <td style={styles.tableCell}>
                       {getStatusBadge(booking)}
