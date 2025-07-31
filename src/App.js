@@ -34,9 +34,13 @@ import PartnerDashboardPage from './pages/partner/PartnerDashboard';
 import CreateScooterForm    from './pages/partner/CreateScooterForm';
 import ScooterHistoryPage   from './pages/partner/ScooterHistoryPage';
 import ScooterHistoryListPage from './pages/partner/ScooterHistoryListPage';
+import PartnerAnalyticsPage from './pages/partner/PartnerAnalyticsPage';
+
 
 import ConcernForm from './pages/ConcernForm'; 
 import PartnerOutlet from './pages/partner/PartnerOutlet';
+import FeedbackTablePage from './pages/partner/FeedbackTablePage';
+import LandingPage from './pages/LandingPage';
 
 function App() {
   // This fixes the missing marker icon issue in React apps
@@ -52,11 +56,13 @@ L.Icon.Default.mergeOptions({
       
       <Routes>
 
+
         {/* PUBLIC: only for non-authenticated users */}
           <Route path="/auth/register"           element={<RegistrationForm />} />
           <Route path="/auth/confirm"            element={<ConfirmSignUpPage />} />
           <Route path="/auth/login"              element={<LoginPage />} />
           <Route path="/auth/franchise-signup"   element={<FranchiseSignUpPage />} />
+          <Route path="/feedback-table" element={<FeedbackTablePage />} />
           
           <Route path="/concerns" element={<ConcernForm />} />
 
@@ -77,12 +83,15 @@ L.Icon.Default.mergeOptions({
             <Route path="scooters"                     element={<PartnerDashboardPage />} />
             <Route path="scooters/:scooterId/history"  element={<ScooterHistoryPage />} />
             <Route path="scooters/history" element={<ScooterHistoryListPage />} />
+            <Route path="analytics"                   element={<PartnerAnalyticsPage />} />
           </Route>
 
         </Route>
 
         {/* Catch-all: redirect to login */}
-        <Route path="*" element={<Navigate to="/auth/login" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/"      element={<LandingPage />} />
+
       </Routes>
     </Router>
   );

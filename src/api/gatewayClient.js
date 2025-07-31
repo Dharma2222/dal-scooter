@@ -220,14 +220,14 @@ export async function createFeedback(data, token) {
 }
 
 export async function listFeedback({ bookingId, userId }) {
-  const qs = bookingId
-    ? `?bookingId=${encodeURIComponent(bookingId)}`
-    : userId
-      ? `?userId=${encodeURIComponent(userId)}`
-      : '';
+  // const qs = bookingId
+  //   ? `?bookingId=${encodeURIComponent(bookingId)}`
+  //   : userId
+  //     ? `?userId=${encodeURIComponent(userId)}`
+  //     : '';
 
   const resp = await fetch(
-    API_BASE_URL + API_ROUTES.LIST_FEEDBACK + qs,
+    API_BASE_URL + API_ROUTES.LIST_FEEDBACK,
     {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('authToken')}`
@@ -237,5 +237,19 @@ export async function listFeedback({ bookingId, userId }) {
   if (!resp.ok) {
     throw new Error(`Fetch feedback failed: ${resp.status}`);
   }
+  return resp.json();
+}
+export async function fetchAllFeedback() {
+  const resp = await fetch(
+    `${API_BASE_URL}/feedback/all`,
+    { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } }
+  );
+  if (!resp.ok) throw new Error(`Fetch all feedback failed: ${resp.status}`);
+  return resp.json();
+}
+
+export async function fetchFeedbackSummary() {
+  const resp = await fetch(`${API_BASE_URL}${API_ROUTES.FEEDBACK_SUMMARY}`);
+  if (!resp.ok) throw new Error(`Summary failed: ${resp.status}`);
   return resp.json();
 }

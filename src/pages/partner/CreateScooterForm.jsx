@@ -4,6 +4,7 @@ import { createScooter } from '../../api/gatewayClient';
 import { Loader, PlusCircle } from 'lucide-react';
 import * as Yup from 'yup';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
+import { decodeJwt } from '../../api/gatewayClient';
 
 const scooterSchema = Yup.object().shape({
   name: Yup.string().min(2, "Name too short!").required('Scooter name is required'),
@@ -16,14 +17,18 @@ export default function CreateScooterForm({ onCreate, onSuccess }) {
   const { authUser } = useAuth();
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  const token = localStorage.getItem('authToken');
+  const companyId = decodeJwt(token).sub;
+  
 
   return (
     <div className="max-w-xl mx-auto bg-white rounded-xl shadow p-6 mb-8">
       <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
-        <PlusCircle className="text-green-500" /> Add New Scooter
+        <PlusCircle className="text-green-500"/> Add New Scooter
       </h2>
-      {!authUser?.companyId && (
+      {!companyId && (
         <div className="text-red-600 mb-2 font-bold">
+          <console className="log"></console>
           You must be logged in as a partner to add scooters!
         </div>
       )}
@@ -38,7 +43,7 @@ export default function CreateScooterForm({ onCreate, onSuccess }) {
         onSubmit={async (values, { resetForm, setSubmitting }) => {
           setSuccess('');
           setError('');
-          if (!authUser?.companyId) {
+          if (!companyId) {
             setError('Company ID not found. Are you logged in as a partner?');
             setSubmitting(false);
             return;
@@ -46,7 +51,7 @@ export default function CreateScooterForm({ onCreate, onSuccess }) {
           try {
             await createScooter({
               name: values.name,
-              companyId: authUser.companyId,
+              companyId:companyId,
               type: values.type,
               latitude: parseFloat(values.latitude),
               longitude: parseFloat(values.longitude),
@@ -119,7 +124,7 @@ export default function CreateScooterForm({ onCreate, onSuccess }) {
               type="submit"
               className={`w-full py-2 rounded bg-green-500 text-white font-bold flex items-center justify-center gap-2
               hover:bg-green-600 transition disabled:bg-green-300`}
-              disabled={isSubmitting || !authUser?.companyId}
+              disabled={isSubmitting || !companyId}
             >
               {isSubmitting ? <Loader className="animate-spin" size={18} /> : <PlusCircle size={18} />}
               {isSubmitting ? "Adding..." : "Add Scooter"}

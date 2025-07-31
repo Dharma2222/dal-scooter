@@ -15,5 +15,7 @@ export const API_ROUTES = {
   SCOOTER_HISTORY:     '/bookings/partner',
   CREATE_FEEDBACK:     '/feedback',    // POST
   LIST_FEEDBACK:       '/feedback',    // GET /feedback?bookingId=...
+  FEEDBACK_SUMMARY: '/feedback/summary',
+
   
 };

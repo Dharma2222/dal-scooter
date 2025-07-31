@@ -9,7 +9,8 @@ import {
   Users,
   Plus,
   FileText,
-  Zap
+  Zap,
+  BarChart3
 } from 'lucide-react';
 
 const menuConfig = {
@@ -28,7 +29,11 @@ const menuConfig = {
       to: '/partner/scooters/history',
       icon: <FileText size={18} />,
       label: 'Scooter History'
-    }
+    },
+    
+    { to: '/feedback-table', icon: <FileText size={18} />, label: 'View Feedback' },
+    { to: '/partner/analytics',        icon: <BarChart3 size={18} />,  label: 'Analytics' }
+
   ]
 };
 
