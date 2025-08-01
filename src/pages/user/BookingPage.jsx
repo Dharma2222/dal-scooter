@@ -57,12 +57,25 @@ export default function BookingPage() {
       setActiveBooking(booking);
       setScooters(s => s.filter(x => x.id !== scooterId));
       setError(null);
-    } catch (err) {
-      console.error('Start ride failed', err);
-      setError('Could not start ride. Please try again.');
-    } finally {
-      setStartingRide(null);
-    }
+  
+  // Send email notification
+  const userName = authUser.name || authUser.email;
+  console.log("Sending booking email for user:", authUser);
+  await fetch("https://fv3uizm1fd.execute-api.us-east-1.amazonaws.com/send-email", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+    email: authUser.email,
+    subject: "Scooter Booking Confirmed",
+    body: `Hi ${userName},\n\nYour ride on scooter ID ${scooterId} has been successfully booked.\n\nEnjoy your ride with DALScooter!`
+    })
+  });
+  } catch (err) {
+  console.error('Start ride failed', err);
+  setError('Could not start ride. Please try again.');
+  } finally {
+  setStartingRide(null);
+  }
   };
 
   // End ride: update backend, then launch feedback
