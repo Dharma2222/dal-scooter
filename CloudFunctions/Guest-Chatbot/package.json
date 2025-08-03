@@ -1,0 +1,9 @@
+{
+  "name": "dalscooter-guest-webhook",
+  "version": "1.0.0",
+  "description": "Webhook for DALScooter guest Dialogflow agent",
+  "main": "index.js",
+  "dependencies": {
+    "@google-cloud/functions-framework": "^3.0.0"
+  }
+}

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { fetchFeedbackSummary } from '../api/gatewayClient'; 
+import DALScooterGuestChatBot from '../components/DALScooterGuestChatBot';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -361,6 +362,8 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+      <DALScooterGuestChatBot />
+      {/* End of Footer */}
     </div>
   );
 }

@@ -2,7 +2,7 @@ const AWS = require('aws-sdk');
 const sqs = new AWS.SQS();
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*", // Replace with specific origin in prod
+  "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "OPTIONS,POST",
   "Access-Control-Allow-Headers": "Content-Type,Authorization",
 };
@@ -10,7 +10,6 @@ const corsHeaders = {
 exports.handler = async (event) => {
   console.log("Received event:", JSON.stringify(event, null, 2));
 
-  // ✅ Handle CORS preflight
   if (event.requestContext?.http?.method === "OPTIONS") {
     console.log("OPTIONS preflight request");
     return {

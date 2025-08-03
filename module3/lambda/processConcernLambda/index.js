@@ -15,7 +15,6 @@ exports.handler = async (event) => {
     for (const record of event.Records) {
       const message = JSON.parse(record.body);
 
-      // ✅ Use `message.email` now instead of userId
       const userEmail = message.email;
       if (!userEmail) {
         console.warn("Missing email in message:", message);
@@ -42,7 +41,7 @@ exports.handler = async (event) => {
 
       const concernRecord = {
         concern_id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        user_email: userEmail, // ✅ Store email instead of userId
+        user_email: userEmail,
         franchise_id: selectedUser.Username,
         franchise_email: franchiseEmail || null,
         franchise_name: franchiseName || null,

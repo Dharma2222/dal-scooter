@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { LogOut } from 'lucide-react';
 import Sidebar from '../../components/Sidebar';
+import DALScooterChatBubble from '../../components/DALScooterChatBubble';
 
 export default function UserDashboardPage() {
   const { authUser, logout, isAuthenticated } = useAuth();
@@ -24,6 +25,7 @@ export default function UserDashboardPage() {
       <main className="flex-1 p-6">
         <Outlet />
       </main>
+      <DALScooterChatBubble />
     </div>
   );
 }
