@@ -1,20 +1,25 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: >
-  Complete Serverless Backend for DALScooter including:
-    • Cognito User Pool (custom:role, PostConfirmation trigger, App Client, Groups)
-    • DynamoDB Tables (Users, ScootersTable, BookingsTable, ConcernTickets)
-    • SNS Topic (UserEmail)
-    • Lambda Functions (post_confirmation_signup, GetSecurityQA, GetSecretShiftKey, RegisterUser, SendEmail)
-    • HTTP API Gateway v2 routes (/getSecurityAnswer, /getCipherKey, /register)
+Description: DALScooter backend using existing university LabRole (no in-stack role creation)
 
 Parameters:
+  # Names of existing IAM roles provided by the university
+  LambdaRoleName:
+    Type: String
+    Default: LabRole
+    Description: Name of the existing IAM role for Lambda execution
+
+  GroupRoleName:
+    Type: String
+    Default: LabRole
+    Description: Name of the existing IAM role for Cognito group membership
+
+  PostConfirmationFunctionName:
+    Type: String
+    Default: post_confirmation_signup
+
   UserPoolName:
     Type: String
     Default: ScooterUser
-
-  PostConfirmationLambdaArn:
-    Type: String
-    Default: arn:aws:lambda:us-east-1:241665878536:function:post_confirmation_signup
 
   AppClientName:
     Type: String
@@ -28,18 +33,9 @@ Parameters:
     Type: CommaDelimitedList
     Default: https://localhost:3000/
 
-  GroupRoleArn:
+  UserWelcomeTopicName:
     Type: String
-    Default: arn:aws:iam::241665878536:role/LabRole
-
-  UserWelcomeTopicArn:
-    Type: String
-    Default: arn:aws:sns:us-east-1:241665878536:UserEmail
-
-  LambdaExecutionRoleArn:
-    Type: String
-    Default: arn:aws:iam::241665878536:role/LabRole
-    Description: ARN of existing LabRole for Lambda execution
+    Default: UserEmail
 
   FromAddress:
     Type: String
@@ -56,7 +52,7 @@ Parameters:
   SmtpPass:
     Type: String
     NoEcho: true
-    Description: SMTP password
+    Description: SMTP password for email sending
 
 Resources:
 
@@ -66,6 +62,7 @@ Resources:
     Properties:
       Name: dalscooter
       ProtocolType: HTTP
+      RouteSelectionExpression: '$request.method $request.path'
       CorsConfiguration:
         AllowOrigins: ["*"]
         AllowMethods: ["*"]
@@ -78,15 +75,65 @@ Resources:
       StageName: '$default'
       AutoDeploy: true
 
-  DefaultRoute:
-    Type: AWS::ApiGatewayV2::Route
+  ### SNS Topic ###
+  UserEmailTopic:
+    Type: AWS::SNS::Topic
     Properties:
-      ApiId: !Ref DalscooterApi
-      RouteKey: '$default'
-      Target:
-        Fn::Join:
-          - '/'
-          - [ integrations, !Ref RegisterIntegration ]
+      TopicName: !Ref UserWelcomeTopicName
+
+  ### COGNITO USER POOL & CLIENT ###
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Ref UserPoolName
+
+      # — enable email-as-username & auto-UUID usernames
+      UsernameAttributes:
+        - email
+
+      AutoVerifiedAttributes:
+        - email
+
+      Schema:
+        - Name: role
+          AttributeDataType: String
+          Mutable: true
+          StringAttributeConstraints:
+            MinLength: "0"
+            MaxLength: "2048"
+
+      LambdaConfig:
+        PostConfirmation: !GetAtt PostConfirmationLambda.Arn
+
+  CognitoAppClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Ref AppClientName
+      UserPoolId: !Ref CognitoUserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      SupportedIdentityProviders:
+        - COGNITO
+      CallbackURLs: !Ref CallbackURLs
+      LogoutURLs: !Ref LogoutURLs
+
+  CognitoGroupClient:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: Client
+      UserPoolId: !Ref CognitoUserPool
+      RoleArn: !Sub arn:aws:iam::${AWS::AccountId}:role/${GroupRoleName}
+      Precedence: 1
+
+  CognitoGroupFranchise:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: Franchise
+      UserPoolId: !Ref CognitoUserPool
+      RoleArn: !Sub arn:aws:iam::${AWS::AccountId}:role/${GroupRoleName}
+      Precedence: 2
 
   ### DynamoDB Tables ###
   UsersTable:
@@ -180,83 +227,66 @@ Resources:
           Projection:
             ProjectionType: ALL
 
-  ### SNS Topic ###
-  UserEmailTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      TopicName: UserEmail
-
-  ### Cognito ###
-  CognitoUserPool:
-    Type: AWS::Cognito::UserPool
-    Properties:
-      UserPoolName: !Ref UserPoolName
-      AutoVerifiedAttributes: [email]
-      Schema:
-        - Name: custom:role
-          AttributeDataType: String
-          Mutable: true
-          StringAttributeConstraints:
-            MinLength: "0"
-            MaxLength: "2048"
-      LambdaConfig:
-        PostConfirmation: !Ref PostConfirmationLambdaArn
-
-  CognitoAppClient:
-    Type: AWS::Cognito::UserPoolClient
-    Properties:
-      ClientName: !Ref AppClientName
-      UserPoolId: !Ref CognitoUserPool
-      GenerateSecret: false
-      ExplicitAuthFlows: [ALLOW_USER_SRP_AUTH, ALLOW_REFRESH_TOKEN_AUTH]
-      SupportedIdentityProviders: [COGNITO]
-      CallbackURLs: !Ref CallbackURLs
-      LogoutURLs: !Ref LogoutURLs
-
-  CognitoGroupClient:
-    Type: AWS::Cognito::UserPoolGroup
-    Properties:
-      GroupName: Client
-      UserPoolId: !Ref CognitoUserPool
-      RoleArn: !Ref GroupRoleArn
-      Precedence: 1
-
-  CognitoGroupFranchise:
-    Type: AWS::Cognito::UserPoolGroup
-    Properties:
-      GroupName: Franchise
-      UserPoolId: !Ref CognitoUserPool
-      RoleArn: !Ref GroupRoleArn
-      Precedence: 2
-
   ### Lambda Functions ###
-  PostConfirmationSignupFunction:
+  PostConfirmationLambda:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: post_confirmation_signup
       Runtime: python3.13
-      Handler: lambda_function.lambda_handler
-      Role: !Ref LambdaExecutionRoleArn
+      Handler: index.lambda_handler
+      Role: !Sub arn:aws:iam::${AWS::AccountId}:role/${LambdaRoleName}
+
       Timeout: 10
       Code:
         ZipFile: |
           import boto3
+
+          # SDK clients
+          cognito = boto3.client('cognito-idp')
+          dynamodb = boto3.resource('dynamodb')
+          users_table = dynamodb.Table('Users')   # replace with your actual table name
+          
           def lambda_handler(event, context):
-              if event.get('triggerSource')=='PostConfirmation_ConfirmSignUp':
-                  boto3.client('cognito-idp').admin_add_user_to_group(
-                    UserPoolId=event['userPoolId'],
-                    Username=event['request']['userAttributes']['sub'],
-                    GroupName=event['request']['userAttributes']['custom:role']
+              # only fire on successful sign-up confirmation
+              if event.get('triggerSource') == 'PostConfirmation_ConfirmSignUp':
+                  attrs     = event['request']['userAttributes']
+                  sub       = attrs['sub']                     # the Cognito UUID
+                  email     = attrs['email']                   # your Users table PK
+                  role      = attrs.get('custom:role', 'Client')
+                  user_pool = event['userPoolId']
+                  
+                  # 1) add to the Cognito group
+                  cognito.admin_add_user_to_group(
+                      UserPoolId=user_pool,
+                      Username=sub,
+                      GroupName=role
                   )
+                  
+                  # 2) write that Cognito sub back into your Users table
+                  users_table.update_item(
+                      Key={'email': email},
+                      UpdateExpression='SET cognitoSub = :s',
+                      ExpressionAttributeValues={':s': sub}
+                  )
+                  
               return event
 
+  PermissionForCognitoPostConfirmation:
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName: !Ref PostConfirmationLambda
+        Action: lambda:InvokeFunction
+        Principal: cognito-idp.amazonaws.com
+        SourceArn: !Sub arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${CognitoUserPool}
+        
   GetSecurityQAFunction:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: GetSecurityQA
       Runtime: python3.11
       Handler: lambda_function.lambda_handler
-      Role: !Ref LambdaExecutionRoleArn
+      Role: !Sub arn:aws:iam::${AWS::AccountId}:role/${LambdaRoleName}
+
       Timeout: 10
       Environment:
         Variables:
@@ -322,7 +352,8 @@ Resources:
       FunctionName: GetSecretShiftKey
       Runtime: python3.13
       Handler: lambda_function.lambda_handler
-      Role: !Ref LambdaExecutionRoleArn
+      Role: !Sub arn:aws:iam::${AWS::AccountId}:role/${LambdaRoleName}
+
       Timeout: 10
       Environment:
         Variables:
@@ -389,23 +420,26 @@ Resources:
       FunctionName: RegisterUser
       Runtime: nodejs22.x
       Handler: index.handler
-      Role: !Ref LambdaExecutionRoleArn
+      Role: !Sub arn:aws:iam::${AWS::AccountId}:role/${LambdaRoleName}
+
       Timeout: 10
       Environment:
         Variables:
-          USER_WELCOME_TOPIC_ARN: !Ref UserWelcomeTopicArn
+          USER_WELCOME_TOPIC_ARN: !Ref UserWelcomeTopicName
       Code:
         ZipFile: |
-          import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-          import { PutCommand, DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-          import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
-
+          const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+          const {
+            DynamoDBDocumentClient,
+            PutCommand
+          } = require("@aws-sdk/lib-dynamodb");
+          const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns");
           const client = new DynamoDBClient({});
           const docClient = DynamoDBDocumentClient.from(client);
           const snsClient = new SNSClient({});
           const WELCOME_TOPIC_ARN = process.env.USER_WELCOME_TOPIC_ARN;
-
-          export const handler = async (event) => {
+          
+          exports.handler = async (event) => {
             if (!event.body) {
               return {
                 statusCode: 400,
@@ -430,9 +464,9 @@ Resources:
                 })
               };
             }
-
+          
             const { email, name, shiftKey, role, securityAnswer } = data;
-
+          
             // Field-specific validation
             const validationErrors = [];
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -453,7 +487,7 @@ Resources:
                 })
               };
             }
-
+          
             // 2. Prepare database item
             const params = {
               TableName: 'Users',
@@ -468,11 +502,11 @@ Resources:
               },
               ConditionExpression: 'attribute_not_exists(email)'
             };
-
+          
             try {
               // 3. Store data
               await docClient.send(new PutCommand(params));
-
+          
               // 4. Publish welcome email
               if (WELCOME_TOPIC_ARN) {
                 const emailMessage = {
@@ -485,7 +519,7 @@ Resources:
                   Message: JSON.stringify(emailMessage)
                 }));
               }
-
+          
               return {
                 statusCode: 200,
                 body: JSON.stringify({ message: 'Registration successful', email, name })
@@ -510,14 +544,15 @@ Resources:
               };
             }
           };
-
+          
   SendEmailFunction:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: SendEmail
       Runtime: python3.13
       Handler: lambda_function.lambda_handler
-      Role: !Ref LambdaExecutionRoleArn
+      Role: !Sub arn:aws:iam::${AWS::AccountId}:role/${LambdaRoleName}
+
       Timeout: 10
       Environment:
         Variables:

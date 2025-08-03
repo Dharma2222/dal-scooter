@@ -28,7 +28,10 @@ export async function registerUser(userData) {
     body: JSON.stringify(userData)
   });
   if (!resp.ok) {
+    console.log(Error);
+    
     const err = await resp.text();
+    
     throw new Error(`Register failed: ${resp.status} ${err}`);
   }
   return resp.json();

@@ -49,8 +49,10 @@ const RegistrationPage = () => {
     ];
 
     pool.signUp(
+      
       values.email,
       values.password,
+      
       attributeList,
       null,
       (err, result) => {

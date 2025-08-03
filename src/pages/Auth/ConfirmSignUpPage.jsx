@@ -52,7 +52,7 @@ export default function ConfirmSignUpPage() {
                 role: state.role
 
               });
-              // ✅ Call the notification Lambda API
+              // Call the notification Lambda API
               await fetch("https://fv3uizm1fd.execute-api.us-east-1.amazonaws.com/send-email", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
