@@ -12,7 +12,8 @@ import {
   Zap,
   BarChart3,
   ChevronRight,
-  MessageSquare
+  MessageSquare,
+  HelpCircle
 } from 'lucide-react';
 
 const menuConfig = {
@@ -24,7 +25,8 @@ const menuConfig = {
   user: [
     { to: '/user/booking', icon: <Bike size={18} />, label: 'Book Scooter' },
     { to: '/user/history', icon: <Clock size={18} />, label: 'My Booking History' },
-    { to: '/user/feedback',icon:<MessageSquare size={18}/>,label:'Feedbacks' }
+    { to: '/user/feedback',icon:<MessageSquare size={18}/>,label:'Feedbacks' },
+    { to: '/concerns' , icon: <HelpCircle size={18}/>,label: 'Raise a Complaint'}
   ],
   partner: [
     { to: '/partner/dashboard', icon: <Home size={18} />, label: 'Dashboard' },
